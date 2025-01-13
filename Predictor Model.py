@@ -2,6 +2,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import yfinance as yf
 
 from keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense
@@ -9,13 +10,17 @@ from alpha_vantage.timeseries import TimeSeries
 from sklearn.model_selection import train_test_split
 from keras.layers import Dropout
 from keras.layers import Input
+from datetime import datetime
 # ---------------------- GATHERING STOCK DATA FROM API -----------------
 
-api_key = '91SGPKQ9J5R8NB7O'
-ts = TimeSeries(key = api_key, output_format = 'pandas')
-row_data,metadata = ts.get_daily(symbol = 'AAPL', outputsize='full')
-close_prices = row_data['4. close'].values
-print(close_prices.shape)
+#api_key = '91SGPKQ9J5R8NB7O'
+#ts = TimeSeries(key = api_key, output_format = 'pandas')
+#row_data,metadata = ts.get_daily(symbol = 'AAPL', outputsize='full')
+#close_prices = row_data['4. close'].values
+
+today = datetime.today().strftime('%Y-%m-%d')
+data = yf.download('AAPL', start="2023-01-01", end=today)
+close_prices = data["Close"].values
 
 # ---------------------- SCALING DATA ----------------------------
 
@@ -32,7 +37,7 @@ for i in range (10,len(scaled)):
     x.append(scaled[i-10:i,0])  #add the last ten (from i but not including i) prices from the first(only) column
     y.append(scaled[i,0]) #add the ith entry (next days price)
 
-x,y = np.array(x) , np.array(y) # make then numpy arrays to work with keras
+x,y = np.array(x) , np.array(y) # make them numpy arrays to work with keras
 
 #-------------------------RESHAPING FOR LSTM ---------------
 
@@ -113,7 +118,7 @@ weekly_model.add(Dense ( 64, activation = 'relu'))
 weekly_model.add(Dense ( 32, activation = 'relu'))
 weekly_model.add(Dense (7))
 weekly_model.compile(optimizer='adam', loss='mean_absolute_percentage_error')
-history = weekly_model.fit(X_train_weekly , y_train_weekly , epochs = 10 , batch_size = 32)
+history = weekly_model.fit(X_train_weekly , y_train_weekly , epochs = 50 , batch_size = 32)
 
 weekly_model.save('weekly_stock_algorithm.keras')
 
